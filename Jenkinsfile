@@ -19,6 +19,23 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
                         set -e
                         
+                        echo "Updating package list..."
+                        sudo apt-get update -y
+                        
+                        echo "Checking if Docker is installed..."
+                        if ! command -v docker &> /dev/null; then
+                            echo "Docker not found, installing..."
+                            sudo apt-get install -y docker.io
+                        fi
+                        
+                        echo "Checking if Docker Compose is installed..."
+                        if ! command -v docker-compose &> /dev/null; then
+                            echo "Docker Compose not found, installing..."
+                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
+                            sudo chmod +x /usr/local/bin/docker-compose
+                            sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+                        fi
+                        
                         echo "Switching to home directory"
                         cd /home/ubuntu
                         
@@ -43,8 +60,8 @@ pipeline {
                         docker push ${DOCKER_HUB_REPO}:latest
                         
                         echo "Deploying with Docker Compose..."
-                        sudo /usr/local/bin/docker-compose down || true
-                        sudo /usr/local/bin/docker-compose up -d
+                        docker-compose down || true
+                        docker-compose up -d
 
                         echo "Deployment successful!"
                         exit 0
