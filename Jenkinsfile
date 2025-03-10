@@ -14,8 +14,10 @@ pipeline {
                     usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD")
                 ]) {
                     sh """
-                        echo "Cloning repository..."
+                        echo "Removing old repository (if exists)..."
                         rm -rf Django_Notes_App_Separate_EC2 || true
+                        
+                        echo "Cloning repository..."
                         git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git
                         cd Django_Notes_App_Separate_EC2
                         
@@ -43,33 +45,41 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
                         set -e
                         
-                        echo "Ensuring necessary packages are installed..."
+                        echo "Updating system packages..."
                         sudo apt-get update -y || true
                         
+                        echo "Installing Docker if not installed..."
                         if ! command -v docker &> /dev/null; then
                             sudo apt-get install -y docker.io
                         fi
+
+                        echo "Installing Docker Compose if not installed..."
                         if ! command -v docker-compose &> /dev/null; then
                             sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
                             sudo chmod +x /usr/local/bin/docker-compose
                             sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
                         fi
                         
-                        echo "Switching to project directory..."
-                        cd /home/ubuntu/Django_Notes_App_Separate_EC2 || { 
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git && cd Django_Notes_App_Separate_EC2; 
-                        }
+                        echo "Ensuring repository is up-to-date..."
+                        cd /home/ubuntu/Django_Notes_App_Separate_EC2 || git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git
+                        cd Django_Notes_App_Separate_EC2
+                        git fetch origin main
+                        git reset --hard origin/main
 
                         echo "Pulling latest Docker image..."
-                        docker-compose pull
+                        docker pull ${DOCKER_HUB_REPO}:latest
+
+                        echo "Stopping old containers..."
+                        docker-compose down --remove-orphans
 
                         echo "Deploying using rolling update strategy..."
-                        docker-compose up -d --no-deps --build django-app
+                        docker-compose up -d --build
 
                         echo "Cleaning up unused images..."
                         docker image prune -af
 
                         echo "Deployment successful!"
+                
                     """
                 }
             }
