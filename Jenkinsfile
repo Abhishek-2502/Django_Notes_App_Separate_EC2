@@ -23,7 +23,7 @@ pipeline {
                         docker build -t ${DOCKER_HUB_REPO}:latest .
 
                         echo "Logging in to Docker Hub..."
-                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin < /dev/null
                         
                         echo "Pushing image to Docker Hub..."
                         docker push ${DOCKER_HUB_REPO}:latest
@@ -43,10 +43,9 @@ pipeline {
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
                         set -e
                         
-                        echo "Updating package list..."
+                        echo "Ensuring necessary packages are installed..."
                         sudo apt-get update -y || true
                         
-                        echo "Checking if Docker and Docker Compose are installed..."
                         if ! command -v docker &> /dev/null; then
                             sudo apt-get install -y docker.io
                         fi
@@ -57,22 +56,20 @@ pipeline {
                         fi
                         
                         echo "Switching to project directory..."
-                        cd /home/ubuntu || true
-                        if [ ! -d "Django_Notes_App_Separate_EC2" ]; then
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git
-                        fi
-                        cd Django_Notes_App_Separate_EC2
-                        git pull origin main
-                        
-                        echo "Pulling latest Docker image from Docker Hub..."
-                        docker pull ${DOCKER_HUB_REPO}:latest
-                        
-                        echo "Deploying with Docker Compose..."
-                        docker-compose down || true
-                        docker-compose up -d
+                        cd /home/ubuntu/Django_Notes_App_Separate_EC2 || { 
+                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git && cd Django_Notes_App_Separate_EC2; 
+                        }
+
+                        echo "Pulling latest Docker image..."
+                        docker-compose pull
+
+                        echo "Deploying using rolling update strategy..."
+                        docker-compose up -d --no-deps --build django-app
+
+                        echo "Cleaning up unused images..."
+                        docker image prune -af
 
                         echo "Deployment successful!"
-                        
                     """
                 }
             }
