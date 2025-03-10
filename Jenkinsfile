@@ -17,35 +17,37 @@ pipeline {
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
+                        set -e
                         
-                        # Ensure the repository exists or clone it
+                        echo "Switching to home directory"
                         cd /home/ubuntu
+                        
+                        echo "Cloning or updating repository..."
                         if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
-                            echo "Repository not found. Cloning..."
                             git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
                         fi
-                        
-                        # Navigate to project directory and pull latest changes
                         cd Django_Notes_App_Docker_Jenkins_Declarative
                         git pull origin main
                         
-                        # Clean up old Docker images
+                        echo "Cleaning up old Docker images..."
                         docker system prune -f
                         
-                        # Build the Docker image
+                        echo "Building Docker image..."
                         docker build -t ${IMAGE_NAME} .
                         
-                        # Login to Docker Hub
+                        echo "Logging in to Docker Hub..."
                         echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
                         
-                        # Push the image to Docker Hub
+                        echo "Pushing image to Docker Hub..."
                         docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}:latest
                         docker push ${DOCKER_HUB_REPO}:latest
                         
-                        # Deploy using Docker Compose
-                        docker-compose down
-                        docker-compose up -d
+                        echo "Deploying with Docker Compose..."
+                        sudo /usr/local/bin/docker-compose down || true
+                        sudo /usr/local/bin/docker-compose up -d
 
+                        echo "Deployment successful!"
+                        exit 0
                         EOF
                     """
                 }
