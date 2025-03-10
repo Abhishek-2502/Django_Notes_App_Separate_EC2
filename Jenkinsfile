@@ -50,23 +50,11 @@ pipeline {
                     string(credentialsId: "EC2_2_IP", variable: "EC2_2_IP")
                 ]) {
                     sh """
-                        ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
+                        ssh -t -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
                         set -e
 
                         echo "Updating system packages..."
                         sudo apt-get update -y || true
-                        
-                        echo "Installing Docker if not installed..."
-                        if ! command -v docker &> /dev/null; then
-                            sudo apt-get install -y docker.io
-                        fi
-
-                        echo "Installing Docker Compose if not installed..."
-                        if ! command -v docker-compose &> /dev/null; then
-                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
-                            sudo chmod +x /usr/local/bin/docker-compose
-                            sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-                        fi
                         
                         echo "Fetching latest repo on EC2-2..."
                         if [ -d "${DEPLOY_DIR}" ]; then
