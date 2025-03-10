@@ -56,6 +56,14 @@ pipeline {
                             sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
                         fi
                         
+                        echo "Switching to project directory..."
+                        cd /home/ubuntu || true
+                        if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
+                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
+                        fi
+                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        git pull origin main
+                        
                         echo "Pulling latest Docker image from Docker Hub..."
                         docker pull ${DOCKER_HUB_REPO}:latest
                         
@@ -64,6 +72,7 @@ pipeline {
                         docker-compose up -d
 
                         echo "Deployment successful!"
+                        
                     """
                 }
             }
