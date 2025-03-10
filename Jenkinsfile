@@ -4,21 +4,55 @@ pipeline {
     environment {
         IMAGE_NAME = "django-note-app"
         DOCKER_HUB_REPO = "abhi25022004/django-note-app"
+        GIT_REPO = "https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git"
+        DEPLOY_DIR = "/home/ubuntu/Django_Notes_App_Separate_EC2"
     }
 
     stages {
+        stage("Clone Latest Code in Jenkins") {
+            steps {
+                script {
+                    if (fileExists("workspace")) {
+                        echo "Fetching latest changes..."
+                        sh "cd workspace && git pull origin main"
+                    } else {
+                        echo "Cloning repository..."
+                        sh "git clone ${GIT_REPO} workspace"
+                    }
+                }
+            }
+        }
+
+        stage("Build and Push Docker Image") {
+            steps {
+                withCredentials([
+                    usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD")
+                ]) {
+                    sh """
+                        cd workspace
+                        echo "Building Docker image..."
+                        docker build -t ${DOCKER_HUB_REPO}:latest .
+
+                        echo "Logging in to Docker Hub..."
+                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
+
+                        echo "Pushing image to Docker Hub..."
+                        docker push ${DOCKER_HUB_REPO}:latest
+                    """
+                }
+            }
+        }
+
         stage("Deploy on EC2-2") {
             steps {
-                echo "Deploying latest image on EC2-2"
                 withCredentials([
                     sshUserPrivateKey(credentialsId: "ec2-ssh-key", keyFileVariable: "SSH_KEY"),
-                    string(credentialsId: "EC2_2_IP", variable: "EC2_2_IP"),
-                    usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD")
+                    string(credentialsId: "EC2_2_IP", variable: "EC2_2_IP")
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
                         set -e
-                        
+
                         echo "Updating system packages..."
                         sudo apt-get update -y || true
                         
@@ -34,36 +68,29 @@ pipeline {
                             sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
                         fi
                         
-                        echo "Ensuring repository is up-to-date..."
-                        if [ -d "/home/ubuntu/Django_Notes_App_Separate_EC2" ]; then
-                            cd /home/ubuntu/Django_Notes_App_Separate_EC2
-                            git fetch origin main
-                            git reset --hard origin/main
+                        echo "Fetching latest repo on EC2-2..."
+                        if [ -d "${DEPLOY_DIR}" ]; then
+                            cd ${DEPLOY_DIR}
+                            git pull origin main
                         else
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git /home/ubuntu/Django_Notes_App_Separate_EC2
-                            cd /home/ubuntu/Django_Notes_App_Separate_EC2
+                            git clone ${GIT_REPO} ${DEPLOY_DIR}
+                            cd ${DEPLOY_DIR}
                         fi
 
-                        echo "Building Docker image..."
-                        docker build -t ${DOCKER_HUB_REPO}:latest .
-
-                        echo "Logging in to Docker Hub..."
-                        echo "${DOCKER_PASSWORD}" | docker login -u "${DOCKER_USERNAME}" --password-stdin
-
-                        echo "Pushing image to Docker Hub..."
-                        docker push ${DOCKER_HUB_REPO}:latest
+                        echo "Pulling latest Docker image..."
+                        docker pull ${DOCKER_HUB_REPO}:latest
 
                         echo "Stopping old containers..."
                         docker-compose down --remove-orphans
 
                         echo "Deploying latest image..."
-                        docker-compose up -d --build
+                        docker-compose up -d --force-recreate
 
                         echo "Cleaning up unused images..."
                         docker image prune -af
 
                         echo "Deployment successful!"
-                      
+                        EOF
                     """
                 }
             }
