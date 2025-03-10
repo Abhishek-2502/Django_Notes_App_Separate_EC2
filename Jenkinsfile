@@ -15,9 +15,9 @@ pipeline {
                 ]) {
                     sh """
                         echo "Cloning repository..."
-                        rm -rf Django_Notes_App_Docker_Jenkins_Declarative || true
-                        git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
-                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        rm -rf Django_Notes_App_Separate_EC2 || true
+                        git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git
+                        cd Django_Notes_App_Separate_EC2
                         
                         echo "Building Docker image..."
                         docker build -t ${DOCKER_HUB_REPO}:latest .
@@ -58,10 +58,10 @@ pipeline {
                         
                         echo "Switching to project directory..."
                         cd /home/ubuntu || true
-                        if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
+                        if [ ! -d "Django_Notes_App_Separate_EC2" ]; then
+                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Separate_EC2.git
                         fi
-                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        cd Django_Notes_App_Separate_EC2
                         git pull origin main
                         
                         echo "Pulling latest Docker image from Docker Hub..."
