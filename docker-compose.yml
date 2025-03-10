@@ -6,8 +6,8 @@ services:
     ports:
       - "8000:8000"
     restart: always  # Auto-restart on failure
-    working_dir: /app/backend  # Ensure correct working directory
+    working_dir: /app/notesapp  # Ensure correct working directory
     volumes:
-      - .:/app/backend  # Useful for local development (optional)
+      - .:/app/notesapp  # Useful for local development (optional)
     environment:
       - PYTHONUNBUFFERED=1  # Helps with logging inside containers
