@@ -78,7 +78,7 @@ pipeline {
                         docker image prune -af
 
                         echo "Deployment successful!"
-                        EOF
+                        
                     """
                 }
             }
