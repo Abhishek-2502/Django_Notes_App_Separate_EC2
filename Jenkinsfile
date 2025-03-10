@@ -22,13 +22,13 @@ pipeline {
                         cd Django_Notes_App_Separate_EC2
                         
                         echo "Building Docker image..."
-                        docker build -t ${DOCKER_HUB_REPO}:latest .
+                        docker build -t \${DOCKER_HUB_REPO}:latest .
 
                         echo "Logging in to Docker Hub..."
-                        echo '{ "auths": { "https://index.docker.io/v1/": { "auth": "'$(echo -n "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" | base64)'" } } }' > ~/.docker/config.json
+                        echo '{ "auths": { "https://index.docker.io/v1/": { "auth": "'\$(echo -n "\${DOCKER_USERNAME}:\${DOCKER_PASSWORD}" | base64)'" } } }' > ~/.docker/config.json
                         
                         echo "Pushing image to Docker Hub..."
-                        docker push ${DOCKER_HUB_REPO}:latest
+                        docker push \${DOCKER_HUB_REPO}:latest
                     """
                 }
             }
@@ -67,7 +67,7 @@ pipeline {
                         git reset --hard origin/main
 
                         echo "Pulling latest Docker image..."
-                        docker pull ${DOCKER_HUB_REPO}:latest
+                        docker pull \${DOCKER_HUB_REPO}:latest
 
                         echo "Stopping old containers..."
                         docker-compose down --remove-orphans
@@ -79,7 +79,7 @@ pipeline {
                         docker image prune -af
 
                         echo "Deployment successful!"
-                        
+                        EOF
                     """
                 }
             }
