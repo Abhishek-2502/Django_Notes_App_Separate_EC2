@@ -7,52 +7,45 @@ pipeline {
     }
 
     stages {
-        stage("Clone Code") {
+        stage("Deploy on EC2-2 & Build Image") {
             steps {
-                echo "Cloning the repository..."
-                git url: "https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git", branch: "main"
-            }
-        }
-
-        stage("Build Image") {
-            steps {
-                echo "Building Docker image..."
-                sh """
-                    docker system prune -f  # Clean up old Docker resources
-                    docker build -t ${IMAGE_NAME} .
-                """
-            }
-        }
-
-        stage("Push to Docker Hub") {
-            steps {
-                echo "Pushing image to Docker Hub..."
-                withCredentials([usernamePassword(credentialsId: "dockerHub", passwordVariable: "DOCKER_PASSWORD", usernameVariable: "DOCKER_USERNAME")]) {
-                    sh """
-                        docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}:latest
-                        echo \$DOCKER_PASSWORD | docker login --username \$DOCKER_USERNAME --password-stdin
-                        docker push ${DOCKER_HUB_REPO}:latest
-                    """
-                }
-            }
-        }
-
-        stage("Deploy on EC2-2") {
-            steps {
-                echo "Deploying on EC2-2..."
+                echo "Deploying on EC2-2 and building Docker image"
                 withCredentials([
                     sshUserPrivateKey(credentialsId: "ec2-ssh-key", keyFileVariable: "SSH_KEY"),
+                    usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD"),
                     string(credentialsId: "EC2_2_IP", variable: "EC2_2_IP")
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
-                        echo "Pulling latest image..."
-                        docker-compose pull
-                        echo "Stopping old container..."
+                        
+                        # Ensure the repository exists or clone it
+                        cd /home/ubuntu
+                        if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
+                            echo "Repository not found. Cloning..."
+                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
+                        fi
+                        
+                        # Navigate to project directory and pull latest changes
+                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        git pull origin main
+                        
+                        # Clean up old Docker images
+                        docker system prune -f
+                        
+                        # Build the Docker image
+                        docker build -t ${IMAGE_NAME} .
+                        
+                        # Login to Docker Hub
+                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+                        
+                        # Push the image to Docker Hub
+                        docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}:latest
+                        docker push ${DOCKER_HUB_REPO}:latest
+                        
+                        # Deploy using Docker Compose
                         docker-compose down
-                        echo "Starting new container..."
                         docker-compose up -d
-                        echo "Deployment completed successfully!"
+
                         EOF
                     """
                 }
