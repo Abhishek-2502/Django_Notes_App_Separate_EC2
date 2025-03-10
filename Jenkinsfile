@@ -1,18 +1,42 @@
 pipeline {
     agent any
-    
+
     environment {
         IMAGE_NAME = "django-note-app"
         DOCKER_HUB_REPO = "abhi25022004/django-note-app"
     }
 
     stages {
-        stage("Deploy on EC2-2 & Build Image") {
+        stage("Clone Repo & Build Image") {
             steps {
-                echo "Deploying on EC2-2 and building Docker image"
+                echo "Cloning GitHub repository and building Docker image"
+                withCredentials([
+                    usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD")
+                ]) {
+                    sh """
+                        echo "Cloning repository..."
+                        rm -rf Django_Notes_App_Docker_Jenkins_Declarative || true
+                        git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
+                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        
+                        echo "Building Docker image..."
+                        docker build -t ${DOCKER_HUB_REPO}:latest .
+
+                        echo "Logging in to Docker Hub..."
+                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
+                        
+                        echo "Pushing image to Docker Hub..."
+                        docker push ${DOCKER_HUB_REPO}:latest
+                    """
+                }
+            }
+        }
+
+        stage("Deploy on EC2-2") {
+            steps {
+                echo "Deploying latest image on EC2-2"
                 withCredentials([
                     sshUserPrivateKey(credentialsId: "ec2-ssh-key", keyFileVariable: "SSH_KEY"),
-                    usernamePassword(credentialsId: "dockerHub", usernameVariable: "DOCKER_USERNAME", passwordVariable: "DOCKER_PASSWORD"),
                     string(credentialsId: "EC2_2_IP", variable: "EC2_2_IP")
                 ]) {
                     sh """
@@ -32,18 +56,7 @@ pipeline {
                             sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
                         fi
                         
-                        echo "Switching to project directory"
-                        cd /home/ubuntu || true
-                        if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
-                        fi
-                        cd Django_Notes_App_Docker_Jenkins_Declarative
-                        git pull origin main
-                        
-                        echo "Logging in to Docker Hub..."
-                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
-                        
-                        echo "Pulling latest image from Docker Hub..."
+                        echo "Pulling latest Docker image from Docker Hub..."
                         docker pull ${DOCKER_HUB_REPO}:latest
                         
                         echo "Deploying with Docker Compose..."
