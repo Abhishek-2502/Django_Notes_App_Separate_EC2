@@ -33,8 +33,8 @@ pipeline {
                         echo "Stopping old containers..."
                         docker-compose down --remove-orphans
 			
-			            echo "Building the image"
-			            docker-compose build
+		        echo "Building the image"
+			docker-compose build
 
                         echo "Deploying latest image..."
                         docker-compose up -d
