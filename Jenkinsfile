@@ -17,51 +17,38 @@ pipeline {
                 ]) {
                     sh """
                         ssh -o StrictHostKeyChecking=no -i \$SSH_KEY ubuntu@\$EC2_2_IP << 'EOF'
-                        set -e  # Stop execution if any critical command fails
+                        set -e
                         
                         echo "Updating package list..."
                         sudo apt-get update -y || true
                         
-                        echo "Checking if Docker is installed..."
+                        echo "Checking if Docker and Docker Compose are installed..."
                         if ! command -v docker &> /dev/null; then
-                            echo "Docker not found, installing..."
-                            sudo apt-get install -y docker.io || true
+                            sudo apt-get install -y docker.io
                         fi
-                        
-                        echo "Checking if Docker Compose is installed..."
                         if ! command -v docker-compose &> /dev/null; then
-                            echo "Docker Compose not found, installing..."
-                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose || true
+                            sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-\$(uname -s)-\$(uname -m)" -o /usr/local/bin/docker-compose
                             sudo chmod +x /usr/local/bin/docker-compose
-                            sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose || true
+                            sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
                         fi
                         
-                        echo "Switching to home directory"
+                        echo "Switching to project directory"
                         cd /home/ubuntu || true
-                        
-                        echo "Cloning or updating repository..."
                         if [ ! -d "Django_Notes_App_Docker_Jenkins_Declarative" ]; then
-                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git || true
+                            git clone https://github.com/Abhishek-2502/Django_Notes_App_Docker_Jenkins_Declarative.git
                         fi
-                        cd Django_Notes_App_Docker_Jenkins_Declarative || true
-                        git pull origin main || true
-                        
-                        echo "Cleaning up old Docker images..."
-                        docker system prune -f || true
-                        
-                        echo "Building Docker image..."
-                        docker build -t ${IMAGE_NAME} . || true
+                        cd Django_Notes_App_Docker_Jenkins_Declarative
+                        git pull origin main
                         
                         echo "Logging in to Docker Hub..."
-                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin || true
+                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin
                         
-                        echo "Pushing image to Docker Hub..."
-                        docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}:latest || true
-                        docker push ${DOCKER_HUB_REPO}:latest || true
+                        echo "Pulling latest image from Docker Hub..."
+                        docker pull ${DOCKER_HUB_REPO}:latest
                         
                         echo "Deploying with Docker Compose..."
                         docker-compose down || true
-                        docker-compose up -d || true
+                        docker-compose up -d
 
                         echo "Deployment successful!"
                     """
