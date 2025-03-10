@@ -25,7 +25,7 @@ pipeline {
                         docker build -t ${DOCKER_HUB_REPO}:latest .
 
                         echo "Logging in to Docker Hub..."
-                        echo "${DOCKER_PASSWORD}" | docker login --username "${DOCKER_USERNAME}" --password-stdin < /dev/null
+                        echo '{ "auths": { "https://index.docker.io/v1/": { "auth": "'$(echo -n "${DOCKER_USERNAME}:${DOCKER_PASSWORD}" | base64)'" } } }' > ~/.docker/config.json
                         
                         echo "Pushing image to Docker Hub..."
                         docker push ${DOCKER_HUB_REPO}:latest
@@ -79,7 +79,7 @@ pipeline {
                         docker image prune -af
 
                         echo "Deployment successful!"
-                
+                        
                     """
                 }
             }
