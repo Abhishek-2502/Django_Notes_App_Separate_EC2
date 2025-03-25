@@ -12,7 +12,7 @@ Ensure you have the following installed and configured on AWS EC2 Instance:
 - **Docker Compose**
 - **Jenkins**
 
-Refer to the installation guide: [Jenkins_Docker_Setup_AWS](https://github.com/Abhishek-2502/Jenkins_Docker_Setup_AWS)
+Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.com/Abhishek-2502/Java_Jenkins_Docker_Setup_AWS)
 
 ---
 
