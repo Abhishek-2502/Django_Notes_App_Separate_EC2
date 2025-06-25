@@ -1,6 +1,6 @@
-# Jenkins Declarative Pipeline Setup
+# Jenkins Declarative Pipeline Setup (Multi-EC2 Deployment)
 
-This guide provides step-by-step instructions for setting up a Jenkins declarative pipeline to automate the build and deployment of a Django Notes App using Docker and Jenkins.
+This guide provides step-by-step instructions for setting up a Jenkins Declarative Pipeline to automate the build and deployment of a Django Notes App using Docker. Jenkins is installed on one AWS EC2 instance, and the application is deployed on another EC2 instance via SSH.
 
 ---
 
@@ -8,8 +8,8 @@ This guide provides step-by-step instructions for setting up a Jenkins declarati
 
 Ensure you have the following installed and configured on AWS EC2 Instance:
 - **Docker**
-- **Docker Hub**
 - **Docker Compose**
+- **Docker Hub (If used in project)**
 - **Jenkins**
 
 Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.com/Abhishek-2502/Java_Jenkins_Docker_Setup_AWS)
@@ -18,10 +18,10 @@ Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.
 
 ## 1. Create a Jenkins Project
 
-1. Open Jenkins at `http://your_public_ip:8080`
+1. Open Jenkins at `http://jenkins_ec2_public_ip:8080`
 2. Click **New Item**
 3. Select **Pipeline**
-4. Enter project name (e.g., `django-notes-app`)
+4. Enter project name (e.g., `django-notes-remote-deploy`)
 5. Click **OK**
 
 ---
@@ -29,7 +29,7 @@ Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.
 ## 2. Configure the Project
 
 ### General
-- **Description**: Django notes app with declarative pipeline
+- **Description**: Django Notes App deployment using declarative pipeline with SSH to remote EC2
 - **GitHub Project**: Add repository URL
 
 ### Build Triggers
@@ -44,7 +44,7 @@ Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.
 
 ---
 
-## 3. Add Docker Hub Credentials in Jenkins
+## 3. Add Docker Hub Credentials in Jenkins (If used in project)
 
 1. Navigate to **Manage Jenkins** → **Manage Credentials**
 2. Under **Stores scoped to Jenkins**, select **Global credentials (unrestricted)**
@@ -62,7 +62,7 @@ Refer to the installation guide: [Java_Jenkins_Docker_Setup_AWS](https://github.
 
 ## 4. Allow Port 8000 in Security Group
 
-For accessing the Django Notes App, open port **8000**:
+For accessing the Django Notes App, open port **8000** on Target EC2:
 - **Type**: Custom TCP
 - **Port Range**: 8000
 - **Source**: Anywhere-IPv4
@@ -86,12 +86,12 @@ Push some changes in the code on Github and pipeline will automatically build th
 - Once the build is complete, the Django Notes App should be accessible at: 
   
   ```
-  http://your_public_ip:8000
+  http://target_ec2_public_ip:8000
   ```
 
 ---
 
-### You have successfully set up a Jenkins declarative pipeline for a Django Notes App!
+### You’ve successfully created a Jenkins Declarative Pipeline to deploy a Django Notes App on a remote EC2 instance using SSH.
 
 ## Author
 Abhishek Rajput
